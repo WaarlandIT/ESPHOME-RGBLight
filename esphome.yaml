@@ -1,0 +1,327 @@
+esphome:
+  name: rgb_light
+  platform: ESP8266
+  board: esp01_1m
+ 
+logger:
+  level: VERY_VERBOSE
+  baud_rate: 0
+
+api:
+  encryption:
+    key:  !secret api_key
+
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+mqtt:
+  broker: !secret mqtt_server
+  username: !secret mqtt_user
+  password: !secret mqtt_password
+ 
+light:
+  - platform: neopixelbus
+    type: brg
+    pin: GPIO2
+    num_leds: 9
+    name: "Light"
+    variant: ws2812x
+    default_transition_length: 3s
+    effects:
+      - random:
+          name: "Slow Random"
+          transition_length: 30s
+          update_interval: 30s
+      - random:
+          name: "Fast Random"
+          transition_length: 4s
+          update_interval: 5s
+      - addressable_rainbow:
+          name: Rainbow
+          speed: 10
+          width: 50
+      - addressable_twinkle:
+          name: Twinkle Effect
+          twinkle_probability: 5%
+          progress_interval: 4ms
+      - addressable_random_twinkle:
+          name: Random Twinkle
+          twinkle_probability: 5%
+          progress_interval: 32ms
+      - addressable_fireworks:
+          name: Fireworks
+          update_interval: 32ms
+          spark_probability: 10%
+          use_random_color: false
+          fade_out_rate: 120
+      - addressable_flicker:
+          name: Flicker
+      - addressable_lambda:
+          name: "Bluez"
+          lambda: |-
+            for (int i = 0; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(255, 255, 255);
+            }
+
+            for (int i = 1; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(255, 255, 255);
+            }
+
+            for (int i = 2; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(238, 0, 255);
+            }
+
+            for (int i = 3; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(238, 0, 255);
+            }
+
+            for (int i = 4; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(255, 157, 0);
+            }
+
+            for (int i = 5; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(255, 157, 0);
+            }
+
+            for (int i = 6; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(0, 28, 209);
+            }
+
+            for (int i = 7; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(0, 28, 209);
+            }
+
+            for (int i = 8; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(183, 255, 0);
+            }
+
+            for (int i = 9; i <  it.size(); i+=10) {
+            it[i] = light::ESPColor(183, 255, 0);
+            }
+      - addressable_lambda:
+          name: Candy Cane
+          update_interval: 150ms
+          lambda:
+            static int state = 0;
+            const int width = 16;
+
+            for (int i = it.size() - 1; i > 0; i--) {
+              it[i] = it[i - 1].get();
+            }
+
+            if(state < width/2){
+              it[0] = esphome::Color(255,0,0);
+            } else {
+              it[0] = esphome::Color::WHITE;
+            }
+
+            state += 1;
+            if (state >= width) 
+                state = 0;
+      - addressable_lambda:
+          name: "Christmas RedGreen"
+          lambda: |-
+            for (int i = 1; i <  it.size(); i+=2) {
+            it[i] = light::ESPColor(255, 0, 0);
+            }
+            for (int i = 0; i <  it.size(); i+=2) {
+            it[i] = light::ESPColor(0, 255, 0);
+            }
+      - addressable_lambda:
+          name: "Fire"
+          update_interval: 50ms
+          lambda: |-
+            for (uint16_t i = 0; i < it.size(); i++) {                                        
+              float brightness = (it.size()/2 - abs(it.size()/2 - i)) / (float)(it.size()/2); 
+              uint8_t whiteness = random(64 * brightness);                                    
+              uint8_t redness = random(64) + random(127 * brightness);                        
+              uint8_t greeness = random(redness/2);                                           
+              it[i] = ESPColor(whiteness + redness, whiteness + greeness, whiteness);
+            }
+      - addressable_lambda:
+          name: "Flames Vertical"
+          update_interval: 18ms
+          lambda: |-
+            // You may adjust the following two variables as well as the update_interval to fit your needs
+            const uint8_t Cooling  = 55;
+            const uint8_t Sparking = 110;
+            
+            // Use byte* instead of byte[] to allow dynamic allocation based on number of pixels
+            static byte *heat = (byte*) calloc(it.size(), sizeof(byte));
+            int cooldown;
+
+            // Step 1.  Cool down every cell a little
+            for (uint16_t i = 0; i < it.size(); i++) {
+              cooldown = random(0, ((Cooling * 10) / it.size()) + 2);
+
+              if (cooldown > heat[i]) {
+                heat[i] = 0;
+              } else {
+                heat[i] = heat[i] - cooldown;
+              }
+            }
+
+            // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+            for (uint16_t k = it.size() - 1; k >= 2; k--) {
+              heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
+            }
+
+            // Step 3.  Randomly ignite new 'sparks' near the bottom
+            if (random(255) < Sparking) {
+              int y = random(min(it.size() / 10, 7));
+              heat[y] = heat[y] + random(160, 255);
+            }
+
+            // Step 4.  Convert heat to LED colors
+            for (uint16_t Pixel = 0; Pixel < it.size(); Pixel++) {
+              // Scale 'heat' down from 0-255 to 0-191
+              byte t192 = round((heat[Pixel] / 255.0) * 191);
+
+              // calculate ramp up from
+              byte heatramp = t192 & 0x3F; // 0..63
+              heatramp <<= 2; // scale up to 0..252
+
+              // figure out which third of the spectrum we're in:
+              //this is where you can reverse the effect by switching the commented out lines in all 3 places.
+              if (t192 > 0x80) {                     // hottest
+                //it[it.size() - Pixel - 1] = ESPColor(255, 255, heatramp);
+                it[Pixel] = ESPColor(255, 255, heatramp);
+              } else if (t192 > 0x40 ) {             // middle
+                //it[it.size() - Pixel - 1] = ESPColor(255, heatramp, 0);
+                it[Pixel] = ESPColor(255, heatramp, 0);
+              } else {                               // coolest
+                //it[it.size() - Pixel - 1] = ESPColor(heatramp, 0, 0);
+                it[Pixel] = ESPColor(heatramp, 0, 0);
+              }
+            }
+      - addressable_lambda:
+          name: "Lightning"
+          update_interval: 24ms
+          lambda: |-
+            static uint16_t next_frame = 0;
+            static uint16_t frame = 0;
+            static uint8_t flashes = 0;
+            uint16_t px_start = 0;
+            uint16_t px_end   = 0;
+            px_start = random(it.size());
+            px_end = px_start + 1 + random(it.size() - px_start);
+            if (!frame) { // first frame
+              flashes = 4 + random(5);
+              next_frame = flashes * 2 + 5 + random(255);
+              it.all() = esphome::Color::BLACK;
+            }
+            if (frame == 0) { // first frame less intensity
+              it.range(px_start, px_end) = current_color * 63;
+            } else if (frame > 3 && !(frame & 1) && flashes) {
+              uint8_t bri = 255 / (1 + random(2));
+              it.range(px_start, px_end) = current_color * bri;
+              flashes--;
+            } else {
+              it.all() = esphome::Color::BLACK;
+            }
+            frame++;
+            if (frame >= next_frame) frame = 0; // Reset frames
+      - addressable_lambda:
+          name: "Police All"
+          update_interval: 50ms
+          lambda: |-
+            static uint16_t pos = 0;
+            if (pos < it.size() / 2) {
+              it.range(pos, pos + it.size() / 2) = Color(255, 0, 0);       //fill red
+              it.range(0, pos) = Color(0, 0, 255);                         //fill blue
+              it.range(pos + it.size() / 2, it.size()) = Color(0, 0, 255); //fill blue
+            } else {
+              it.range(pos - it.size() / 2, pos) = Color(0, 0, 255);       //fill blue
+              it.range(0, pos - it.size() / 2) = Color(255, 0, 0);         //fill red
+              it.range(pos, it.size()) = Color(255, 0, 0);                 //fill red
+            }
+            pos++;
+            if (pos >= it.size()) pos = 0; //rollover
+      - addressable_lambda:
+          name: Vesuvius
+          update_interval: 50ms
+          lambda:
+          
+            esphome::Color colors[] = { ESPColor(255,0,0), 
+                                  ESPColor(0,255,0), 
+                                  ESPColor(255,255,0),  
+                                  ESPColor(0,0,255),  
+                                  ESPColor(255,0,255),  
+                                  ESPColor(0,255,255),  
+                                  ESPColor(255,255,255),  
+                                  ESPColor(0,0,0),  
+                                  };
+                                  
+            static int color = 0;
+            static int step = 0;
+            const int color_size = 8;
+
+            it[it.size()/2 - step] = colors[color];
+            it[it.size()/2 + step] = colors[color];
+
+            step += 1;
+            if (step >= it.size()/2){
+              step = 0;
+              color += 1;
+              if (color >= color_size) 
+                  color = 0;
+            }
+      - addressable_lambda:
+          name: Wheel of Color
+          update_interval: 100ms
+          lambda:
+          
+            esphome::Color colors[] = { ESPColor(255,0,0), 
+                        ESPColor(0,255,0), 
+                        ESPColor(255,255,0),  
+                        ESPColor(0,0,255),  
+                        ESPColor(255,82,0),  
+                        ESPColor(163,0,255),  
+                        };
+                                  
+            static int state = 0;
+            static int step = 0;
+            const int color_size = 6;
+            static int width = it.size();
+
+            for (int i = it.size() - 1; i > 0; i--) {
+              it[i] = it[i - 1].get();
+            }
+
+            it[0] = colors[state];
+
+            step += 1;
+            if (step >= width){
+              step = 0;
+              state += 1;
+              if (state >= color_size) 
+                  state = 0;
+            }
+      - addressable_lambda:
+          name: "Wipe In"
+          update_interval: 20ms
+          lambda: |-
+            static int x = 0;
+            if (initial_run) {
+              x = 0;
+              it.all() = ESPColor(0,0,0);
+            }
+            if (x < it.size()) {
+              it[x] = current_color;
+              x += 1;
+            }
+      - addressable_lambda:
+          name: "Wipe Out"
+          update_interval: 20ms
+          lambda: |-
+            static int x = 0;
+            if (initial_run) {
+              x = it.size();
+            }
+            if (x > 0) {
+              x -= 1; 
+              it[x] = ESPColor(0,0,0);
+            }
