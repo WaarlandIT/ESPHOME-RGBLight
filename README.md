@@ -1,6 +1,7 @@
 # ESPHOME-RGBLight
 
-I created a small device to control my WS2812b RGB Led strips.
+I created a small device to control my WS2812b RGB Led strips. 12 volt led strips have less issues with voltage drop over large lengths. 
+This device needs a 12 Volt power supply to power the lights, it has a voltage regulator to drop the voltage for the ESP-01s. 
 
 ![image](https://github.com/WaarlandIT/ESPHOME-RGBLight/assets/53364386/35758fe5-3988-4907-b47d-bbb3a9ef2fc8)
 
