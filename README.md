@@ -18,6 +18,14 @@ You need to set some variables, I do that via the secrets file:
 - mqtt_user
 - mqtt_password
 
+And you need to set the amount of RGB Leds you have in your string. 
+
 Then use ESPHome to build the binary and write it to the ESP-01s.
+
+## Home Assistant usage
+In Home assistant the property for the new device is like this
+![image](https://github.com/WaarlandIT/ESPHOME-RGBLight/assets/53364386/8a183a75-69c2-4256-bc43-b918bb633ead)
+
+You can change color and brightness like any other RGB light bulb. There is also a collection of 15+ different effects, this collection might grow when the community create more of these. 
 
 
